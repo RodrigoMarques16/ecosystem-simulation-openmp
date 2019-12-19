@@ -26,6 +26,10 @@
 #define DEBUG 0
 #endif
 
+#ifndef NTHREADS
+#define NTHREADS 4
+#endif
+
 #include <string>
 #include <vector>
 #include <tuple>
@@ -36,14 +40,16 @@
 #include "matrix.hpp"
 #include "omp.h"
 
-const size_t NTHREADS = 16;
-
 enum Direction { NORTH, EAST, SOUTH, WEST, INPLACE };
 
 constexpr uint8_t DIRECTIONS_N = 4;
 
 struct World {
-    using Move = std::tuple<int, int, Entity>;
+    struct Move {
+        int x;
+        int y;
+        Entity next;
+    };
 
     int GEN_PROC_RABBITS;  // Number of generations until a rabbit can procrate
     int GEN_PROC_FOXES;    // As above but for foxes
@@ -93,7 +99,7 @@ struct World {
     inline bool resolveConflictRabbit(const Entity&, const Entity) const;
     inline bool resolveConflictFox(const Entity&, const Entity) const;
 
-    inline void add(const std::string_view, const int, const int);
+    inline void add(const std::string, const int, const int);
 
     inline bool canMove(const Entity&, const Entity&) const;
     inline bool hasStarved(const Entity&) const;
@@ -114,7 +120,7 @@ void World::init() {
     }
 
     #pragma omp parallel for num_threads(NTHREADS)
-    for(int i = 1; i != height; ++i) {
+    for(int i = 1; i < height; ++i) {
         owner[i] = omp_get_thread_num();
     }
 }
@@ -125,33 +131,57 @@ inline void World::clearQueues() {
 }
 
 void World::update() {
-    updateRabbits();
+    #pragma omp parallel num_threads(NTHREADS)
+    {
+        #pragma omp for
+        for (int i = 1; i < height; ++i)
+            for (int j = 1; j < width; ++j)
+                if (map(i, j).type == RABBIT)
+                    updateRabbit(map(i, j), i, j);
 
-    #pragma parallel for num_threads(NTHREADS)
-    for (int th = 0; th < NTHREADS; ++th) {
-        for (int i = 0; i < sync[th].size(); ++i) {
-            auto [x, y, next] = sync[th][i];
-            if (resolveConflictRabbit(next, nextMap(x, y)))
-                nextMap(x, y) = next;
+        #pragma omp barrier
+
+        #pragma omp for
+        for (int th = 0; th < NTHREADS; ++th) {
+            for (int i = 0; i < sync[th].size(); ++i) {
+                auto m = sync[th][i];
+                if (resolveConflictRabbit(m.next, nextMap(m.x, m.y)))
+                    nextMap(m.x, m.y) = m.next;
+            }
+        }
+
+        #pragma omp master
+        {
+        map = nextMap;
+        clearQueues();
+        }
+
+        #pragma omp barrier
+
+        #pragma omp for
+        for (int i = 1; i < height; ++i)
+            for (int j = 1; j < width; ++j)
+                if (map(i, j).type == FOX)
+                    updateFox(map(i, j), i, j);
+
+        #pragma omp barrier
+
+        #pragma omp for
+        for (int th = 0; th < NTHREADS; ++th) {
+            for (int i = 0; i < sync[th].size(); ++i) {
+            auto m = sync[th][i];
+            if (resolveConflictFox(m.next, nextMap(m.x, m.y)))
+                nextMap(m.x, m.y) = m.next;
+            }
+        }
+
+        #pragma omp master
+        {
+            clearQueues();
+            map = nextMap;
+            current_gen++;
         }
     }
-
-    clearQueues();
-    map = nextMap;
-    updateFoxes();
-
-    #pragma parallel for num_threads(NTHREADS)
-    for (int th = 0; th < NTHREADS; ++th) {
-        for (int i = 0; i < sync[th].size(); ++i) {
-            auto [x, y, next] = sync[th][i];
-            if (resolveConflictFox(next, nextMap(x, y)))
-                nextMap(x, y) = next;
-        }
-    }
-
-    clearQueues();
-    map = nextMap;
-    current_gen++;
 }
 
 void World::updateRabbits() {
@@ -184,10 +214,6 @@ void World::updateRabbit(Entity ent, int x, int y) {
     }
 
     dbg::LOGLN("Moving to (%d,%d)", x, y);
-
-    // if (resolveConflictRabbit(ent, nextMap(x, y)) == false) {
-    //     dbg::LOGLN("Died attacking");
-    // }
 
     if (ent.age > GEN_PROC_RABBITS) {
         ent.age = 0;
@@ -247,7 +273,7 @@ void World::updateFox(Entity ent, int x, int y) {
     }
 }
 
-inline void World::add(const std::string_view e, const int x, const int y) {
+inline void World::add(const std::string e, const int x, const int y) {
     map(x + 1, y + 1) = nextMap(x + 1, y + 1) = makeEntity(e);
 }
 

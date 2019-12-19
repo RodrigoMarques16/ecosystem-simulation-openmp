@@ -1,12 +1,12 @@
 MAKEFLAGS += --silent
 
 # Compile settings
-CC        = g++
-CFLAGS    = -std=c++17 -Ofast -fno-exceptions
+CC        = g++ -DNTHREADS=$(NTHREADS) -funroll-loops -march=native -flto
+CFLAGS    = -std=c++14 -Ofast -fno-exceptions
 OPENMP    = -fopenmp -mveclibabi=svml
 FILES     = *.cpp
 TARGET    = ecosystem
-
+NTHREADS  = 4
 # Testing variables
 SIZE      = 5x5
 INPUT     = tests/input$(SIZE)

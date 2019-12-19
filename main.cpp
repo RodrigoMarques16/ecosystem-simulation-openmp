@@ -31,7 +31,7 @@ void readEntities(World& world) {
 }
 
 int main() {
-    if constexpr (DEBUG == 0) std::ios_base::sync_with_stdio(false);
+    std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
 
     int gen_proc_rabbits, gen_proc_foxes, gen_food_foxes;

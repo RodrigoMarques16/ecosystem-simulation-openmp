@@ -11,13 +11,13 @@ namespace dbg {
 FILE *LOGFILE = stdout;
 
 #define LOGVAR(X)                                   \
-    if constexpr (DEBUG) {                          \
+    if (DEBUG) {                          \
         fprintf(dbg::LOGFILE, "%s: %d\n", #X, (X)); \
         fflush(dbg::LOGFILE);                       \
     }
 
 void LOG(std::string s) {
-    if constexpr (DEBUG) {
+    if (DEBUG) {
         fputs(s.c_str(), LOGFILE);
         fflush(LOGFILE);
     }
@@ -25,7 +25,7 @@ void LOG(std::string s) {
 
 template <typename... Ts>
 void LOG(std::string fmt, const Ts &... args) {
-    if constexpr (DEBUG) {
+    if (DEBUG) {
         fprintf(LOGFILE, fmt.c_str(), args...);
         fflush(LOGFILE);
     }
@@ -33,7 +33,7 @@ void LOG(std::string fmt, const Ts &... args) {
 
 template <typename... Ts>
 void LOGLN(std::string fmt, const Ts &... args) {
-    if constexpr (DEBUG) {
+    if (DEBUG) {
         LOG(fmt, args...);
         fputc('\n', LOGFILE);
     }

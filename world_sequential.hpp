@@ -58,7 +58,7 @@ struct World {
     inline bool resolveConflictRabbit(const Entity&, const Entity) const;
     inline bool resolveConflictFox(const Entity&, const Entity) const;
 
-    inline void add(const std::string_view, const int, const int);
+    inline void add(const std::string, const int, const int);
 
     inline bool canMove(const Entity&, const Entity&) const;
     inline bool hasStarved(const Entity&) const;
@@ -89,7 +89,6 @@ void World::update() {
 }
 
 void World::updateRabbits() {
-#pragma omp parallel for num_threads(NTHREADS)
     for (int i = 1; i < height; ++i)
         for (int j = 1; j < width; ++j)
             if (map(i, j).type == RABBIT)
@@ -97,7 +96,6 @@ void World::updateRabbits() {
 }
 
 void World::updateFoxes() {
-#pragma omp parallel for num_threads(NTHREADS)
     for (int i = 1; i < height; ++i)
         for (int j = 1; j < width; ++j)
             if (map(i, j).type == FOX)
@@ -172,7 +170,7 @@ void World::updateFox(Entity ent, int x, int y) {
         nextMap(x, y) = ent;
 }
 
-inline void World::add(const std::string_view e, const int x, const int y) {
+inline void World::add(const std::string e, const int x, const int y) {
     map(x + 1, y + 1) = nextMap(x + 1, y + 1) = makeEntity(e);
 }
 

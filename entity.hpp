@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
-#include <string_view>
+#include <string>
 
 using namespace std::literals;
 
@@ -17,31 +17,31 @@ struct Entity {
     short hunger;   // How many generations since it last ate
 };
 
-constexpr std::array<std::string_view, ENTITY_TYPES_N> ENTITY_NAME = {
-    "EMPTY"sv, "RABBIT"sv, "FOX"sv, "ROCK"sv};
+ std::array<std::string, ENTITY_TYPES_N> ENTITY_NAME = {
+    "EMPTY", "RABBIT", "FOX", "ROCK"};
 
-constexpr std::array<char, ENTITY_TYPES_N> ENTITY_SYMBOL = {
+ std::array<char, ENTITY_TYPES_N> ENTITY_SYMBOL = {
     ' ', 'R', 'F', '*'};
 
-inline constexpr Entity makeEntity(const Entity_t t) {
+inline  Entity makeEntity(const Entity_t t) {
     return {t, 0, 0};
 }
 
-inline Entity makeEntity(const std::string_view s) {
-    if (s == "ROCK"sv)
+inline Entity makeEntity(const std::string s) {
+    if (s == "ROCK")
         return makeEntity(Entity_t::ROCK);
-    else if (s == "RABBIT"sv)
+    else if (s == "RABBIT")
         return makeEntity(Entity_t::RABBIT);
-    else if (s == "FOX"sv)
+    else if (s == "FOX")
         return makeEntity(Entity_t::FOX);
     return makeEntity(Entity_t::EMPTY);
 }
 
-inline constexpr std::string_view entityName(const Entity& e) {
+inline  std::string entityName(const Entity& e) {
     return ENTITY_NAME[static_cast<size_t>(e.type)];
 }
 
-inline constexpr std::string_view entityName(const Entity_t e) {
+inline  std::string entityName(const Entity_t e) {
     return ENTITY_NAME[static_cast<size_t>(e)];
 }
 
